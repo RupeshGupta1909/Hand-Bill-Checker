@@ -25,20 +25,18 @@ try {
 
   // Security middleware
   app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: { policy: "unsafe-none" },
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://hand-bill-checker.netlify.app"],
-        scriptSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
-        imgSrc: ["'self'", "data:", "https:", "https://hand-bill-checker.netlify.app"],
-        connectSrc: ["'self'", "https://hand-bill-checker.onrender.com", "https://hand-bill-checker.netlify.app"],
+        defaultSrc: ["'self'"],
+        connectSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
         frameSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
-        fontSrc: ["'self'", "https:", "data:"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
       },
     },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: false,
   }));
 
   // Rate limiting
@@ -75,16 +73,16 @@ try {
 
   // CORS configuration
   app.use(cors({
-    origin: true, // Allow all origins
-    credentials: true,
+    origin: 'https://hand-bill-checker.netlify.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    credentials: false,
     preflightContinue: false,
     optionsSuccessStatus: 204
   }));
 
-  // Remove helmet temporarily for debugging
-  // app.use(helmet({...}));
+  // Handle OPTIONS requests explicitly
+  app.options('*', cors());
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
