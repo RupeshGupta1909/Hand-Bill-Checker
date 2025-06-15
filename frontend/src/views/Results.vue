@@ -168,7 +168,6 @@ import {
   InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth';
-import { config } from '../config';
 
 export default {
   name: 'Results',
