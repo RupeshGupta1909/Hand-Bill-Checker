@@ -71,18 +71,20 @@ try {
     next();
   });
 
-  // CORS configuration
-  app.use(cors({
-    origin: 'https://hand-bill-checker.netlify.app',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-    credentials: false,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
-  }));
-
-  // Handle OPTIONS requests explicitly
-  app.options('*', cors());
+  // Enable CORS for all routes
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'https://hand-bill-checker.netlify.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      logger.info('Handling OPTIONS preflight request');
+      return res.status(200).end();
+    }
+    next();
+  });
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));

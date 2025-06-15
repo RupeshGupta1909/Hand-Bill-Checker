@@ -26,11 +26,11 @@ router.use((req, res, next) => {
     method: req.method,
     path: req.path,
     body: req.method === 'POST' ? { ...req.body, password: '***' } : undefined,
-    headers: {
-      origin: req.headers.origin,
-      'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type']
-    }
+    headers: req.headers,
+    query: req.query,
+    params: req.params,
+    url: req.url,
+    originalUrl: req.originalUrl
   });
   next();
 });
@@ -127,7 +127,13 @@ const resetPasswordValidation = [
 
 // Public routes
 router.post('/register', registerValidation, register);
-router.post('/login', loginValidation, login);
+router.post('/login', (req, res, next) => {
+  logger.info('Login route hit:', {
+    timestamp: new Date().toISOString(),
+    headers: req.headers
+  });
+  next();
+}, loginValidation, login);
 router.post('/refresh-token', refreshToken);
 router.post('/forgot-password', forgotPasswordValidation, forgotPassword);
 router.post('/reset-password', resetPasswordValidation, resetPassword);
