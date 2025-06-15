@@ -23,12 +23,20 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
+        console.log('Attempting login with credentials:', { email: credentials.email, password: '***' });
         const response = await authService.login(credentials);
+        console.log('Login response:', response);
         this.token = response.data.tokens.authToken
         this.user = response.data.user
         localStorage.setItem('token', response.data.tokens.authToken)
         return response.data
       } catch (error) {
+        console.error('Login error:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
         this.error = error.response?.data?.message || 'Login failed'
         throw error
       } finally {

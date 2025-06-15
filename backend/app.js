@@ -27,12 +27,18 @@ try {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
+        defaultSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://hand-bill-checker.netlify.app"],
+        scriptSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
+        imgSrc: ["'self'", "data:", "https:", "https://hand-bill-checker.netlify.app"],
+        connectSrc: ["'self'", "https://hand-bill-checker.onrender.com", "https://hand-bill-checker.netlify.app"],
+        frameSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
+        fontSrc: ["'self'", "https:", "data:"],
       },
     },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false,
   }));
 
   // Rate limiting
@@ -55,12 +61,30 @@ try {
 
   // Middleware
   app.use(compression());
+
+  // Debug logging for CORS
+  app.use((req, res, next) => {
+    logger.info('Incoming request:', {
+      method: req.method,
+      path: req.path,
+      origin: req.headers.origin,
+      headers: req.headers
+    });
+    next();
+  });
+
+  // CORS configuration
   app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: true, // Allow all origins
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   }));
+
+  // Remove helmet temporarily for debugging
+  // app.use(helmet({...}));
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
