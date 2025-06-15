@@ -5,6 +5,7 @@ const { blacklistToken } = require('../middleware/auth');
 const { cache, session } = require('../utils/redis');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 
 // Register new user
 const register = asyncHandler(async (req, res) => {
@@ -85,77 +86,109 @@ const register = asyncHandler(async (req, res) => {
 
 // Login user
 const login = asyncHandler(async (req, res) => {
-  console.log("login controller loaded====================login============================");
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    throw validationError(errors);
-  }
+  try {
+    logger.info('Login attempt:', {
+      email: req.body.email,
+      timestamp: new Date().toISOString()
+    });
 
-  const { email, password } = req.body;
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      throw validationError(errors);
+    }
 
-  // Find user and include password for comparison
-  console.log("email==============", email);
-  console.log("password==============", password);
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-  console.log("user==============", user);
-  if (!user || !await user.comparePassword(password)) {
-    logger.logSecurityEvent('failed_login', {
-      email,
+    const { email, password } = req.body;
+
+    // Check if email and password exist
+    if (!email || !password) {
+      logger.info('Login failed: Missing email or password');
+      return res.status(400).json({
+        status: 'error',
+        message: 'Please provide email and password'
+      });
+    }
+
+    // Find user and include password for comparison
+    console.log("email==============", email);
+    console.log("password==============", password);
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+    console.log("user==============", user);
+    if (!user || !await user.comparePassword(password)) {
+      logger.info('Login failed: Invalid credentials', {
+        email: req.body.email,
+        userExists: !!user
+      });
+      logger.logSecurityEvent('failed_login', {
+        email,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      throw new AppError('Invalid email or password', 401);
+    }
+
+    // Check if user is active
+    if (!user.isActive) {
+      throw new AppError('Account is deactivated. Please contact support.', 401);
+    }
+
+    // Generate tokens
+    const authToken = user.generateAuthToken();
+    const refreshToken = user.generateRefreshToken();
+
+    // Create session
+    await session.create(user._id.toString(), {
+      authToken,
+      refreshToken,
+      loginTime: new Date(),
+      userAgent: req.get('User-Agent'),
+      ip: req.ip
+    });
+
+    // Update login stats
+    user.lastLogin = new Date();
+    user.loginCount += 1;
+    await user.save();
+
+    logger.logUserAction(user._id, 'logged_in', {
+      email: user.email,
       ip: req.ip,
       userAgent: req.get('User-Agent')
     });
-    throw new AppError('Invalid email or password', 401);
-  }
 
-  // Check if user is active
-  if (!user.isActive) {
-    throw new AppError('Account is deactivated. Please contact support.', 401);
-  }
+    logger.info('Login successful:', {
+      userId: user._id,
+      email: user.email,
+      timestamp: new Date().toISOString()
+    });
 
-  // Generate tokens
-  const authToken = user.generateAuthToken();
-  const refreshToken = user.generateRefreshToken();
-
-  // Create session
-  await session.create(user._id.toString(), {
-    authToken,
-    refreshToken,
-    loginTime: new Date(),
-    userAgent: req.get('User-Agent'),
-    ip: req.ip
-  });
-
-  // Update login stats
-  user.lastLogin = new Date();
-  user.loginCount += 1;
-  await user.save();
-
-  logger.logUserAction(user._id, 'logged_in', {
-    email: user.email,
-    ip: req.ip,
-    userAgent: req.get('User-Agent')
-  });
-
-  res.json({
-    status: 'success',
-    message: 'Login successful',
-    data: {
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        profile: user.profile,
-        subscriptionStatus: user.subscriptionStatus,
-        usageStats: user.usageStats,
-        lastLogin: user.lastLogin
-      },
-      tokens: {
-        authToken,
-        refreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    res.json({
+      status: 'success',
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          profile: user.profile,
+          subscriptionStatus: user.subscriptionStatus,
+          usageStats: user.usageStats,
+          lastLogin: user.lastLogin
+        },
+        tokens: {
+          authToken,
+          refreshToken,
+          expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    logger.error('Login error:', {
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    });
+    next(error);
+  }
 });
 
 // Refresh token
@@ -167,7 +200,6 @@ const refreshToken = asyncHandler(async (req, res) => {
   }
 
   // Verify refresh token
-  const jwt = require('jsonwebtoken');
   try {
     const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
     

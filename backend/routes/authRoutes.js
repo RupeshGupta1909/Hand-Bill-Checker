@@ -13,8 +13,27 @@ const {
   getUsageStats
 } = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
+const logger = require('../utils/logger');
 
 const router = express.Router();
+
+// Log that routes are loaded
+logger.info('authRoutes.js loaded================================================');
+
+// Add logging middleware for auth routes
+router.use((req, res, next) => {
+  logger.info('Auth route accessed:', {
+    method: req.method,
+    path: req.path,
+    body: req.method === 'POST' ? { ...req.body, password: '***' } : undefined,
+    headers: {
+      origin: req.headers.origin,
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type']
+    }
+  });
+  next();
+});
 
 // Validation rules
 const registerValidation = [
@@ -105,7 +124,7 @@ const resetPasswordValidation = [
     .isLength({ min: 6 })
     .withMessage('New password must be at least 6 characters long')
 ];
-console.log("authRoutes.js loaded================================================");
+
 // Public routes
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
