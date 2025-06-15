@@ -1,15 +1,13 @@
 import axios from 'axios'
-import config from '../config'
 
-const API_URL = `${config.apiUrl}/api`
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api`
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  },
-  timeout: config.apiTimeout
+  }
 })
 
 // Add token to requests if available
