@@ -83,6 +83,16 @@ try {
     });
   });
 
+  // Root route handler
+  app.get('/', (req, res) => {
+    res.status(200).json({
+      status: 'success',
+      message: 'Miscalc API Server',
+      docs: '/api/health',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // 404 handler
   app.use('*', (req, res, next) => {
       const { AppError } = require('./middleware/errorHandler');
