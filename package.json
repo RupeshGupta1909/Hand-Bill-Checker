@@ -1,0 +1,30 @@
+{
+  "name": "miscalc-app",
+  "version": "1.0.0",
+  "description": "Full-stack application for miscalculation detection",
+  "main": "index.js",
+  "scripts": {
+    "start:frontend": "cd frontend && npm run dev",
+    "start:backend": "cd backend && npm run dev",
+    "start:worker": "cd backend && npm run worker:dev",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:worker\" \"npm run start:frontend\"",
+    "docker:start": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:status": "docker-compose ps",
+    "docker:logs": "docker-compose logs",
+    "docker:restart": "docker-compose down && docker-compose up -d",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "miscalculation",
+    "receipt",
+    "ocr",
+    "ai",
+    "shopkeeper"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

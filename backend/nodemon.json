@@ -1,0 +1,13 @@
+{
+  "watch": ["."],
+  "ext": "js,json",
+  "ignore": [
+    "temp/*",
+    "logs/*",
+    "test-db.js",
+    "test-redis.js",
+    "server.log",
+    "*.py"
+  ],
+  "exec": "node app.js"
+} 

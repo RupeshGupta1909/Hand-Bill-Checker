@@ -1,0 +1,71 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Custom styles */
+.hindi-text {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+}
+
+/* Loading spinner */
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 2s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Custom button styles */
+.btn-primary {
+  @apply bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-md transition duration-200;
+}
+
+/* Form styles */
+.form-input {
+  @apply mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+/* Card styles */
+.card {
+  @apply bg-white shadow rounded-lg p-6;
+}
+
+/* Alert styles */
+.alert-success {
+  @apply bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded relative;
+}
+
+.alert-error {
+  @apply bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative;
+}
+
+.alert-warning {
+  @apply bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded relative;
+}
+
+/* Upload area */
+.upload-area {
+  @apply border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition duration-200;
+}
+
+.upload-area.dragover {
+  @apply border-indigo-400 bg-indigo-50;
+} 

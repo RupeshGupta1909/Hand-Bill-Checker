@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+mongodb_data/
+redis_data/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo 
