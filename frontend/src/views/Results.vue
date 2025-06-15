@@ -168,6 +168,7 @@ import {
   InformationCircleIcon
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../stores/auth';
+import { config } from '../config';
 
 export default {
   name: 'Results',
@@ -254,8 +255,7 @@ export default {
     }
     
     const getImageUrl = (imagePath) => {
-      const backendUrl = 'http://localhost:8080';
-      return `${backendUrl}/${imagePath}`;
+      return `${config.apiUrl}/${imagePath}`;
     }
 
     onMounted(async () => {
