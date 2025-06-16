@@ -64,7 +64,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
       // Upload optimized buffer to cloud storage
       const now = new Date();
       const fileName = `${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}_${now.getDate()}${now.toLocaleString('default', { month: 'short' })}${now.getFullYear()}.jpg`;
-      console.log('fileName============>', fileName);
+      console.log('fileName====0========>', fileName);
       const cloudUploadResult = await cloudStorage.uploadBuffer(optimizedBuffer, fileName);
       console.log('cloudUploadResult============>', cloudUploadResult);
       // Create receipt record
@@ -81,7 +81,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
       const isPriority = req.user.subscriptionStatus === 'premium';
       console.log('isPriority============>', isPriority);
       // Add to processing queue with cloud storage URL
-      const jobResult = isPriority
+      const jobResult = true
         ? await addPriorityJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString())
         : await addImageProcessingJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString());
       console.log('jobResult============>', jobResult);
