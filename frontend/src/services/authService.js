@@ -12,7 +12,7 @@ const api = axios.create({
     'Accept': 'application/json'
   },
   withCredentials: true,
-  timeout: 10000 // 10 second timeout
+  timeout: 30000 // 30 second timeout
 })
 
 // Add token to requests if available
