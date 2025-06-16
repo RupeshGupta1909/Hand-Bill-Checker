@@ -33,7 +33,8 @@ class CloudStorageService {
 
   async uploadBuffer(buffer, fileName, options = {}) {
     try {
-      // Create a promise to handle the upload
+      // Create a promise to handle the upload-
+      console.log('fileName======1======>', fileName);   
       const uploadPromise = new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
@@ -56,7 +57,7 @@ class CloudStorageService {
       });
 
       const result = await uploadPromise;
-      console.log('result============>', result);
+      console.log('result======1======>', result);
       return {
         url: result.secure_url,
         publicId: result.public_id,
