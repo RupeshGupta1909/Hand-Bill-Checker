@@ -64,9 +64,9 @@ const uploadReceipt = asyncHandler(async (req, res) => {
       // Upload optimized buffer to cloud storage
       const now = new Date();
       const fileName = `${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}_${now.getDate()}${now.toLocaleString('default', { month: 'short' })}${now.getFullYear()}.jpg`;
-      
+      console.log('fileName============>', fileName);
       const cloudUploadResult = await cloudStorage.uploadBuffer(optimizedBuffer, fileName);
-
+      console.log('cloudUploadResult============>', cloudUploadResult);
       // Create receipt record
       const receipt = new Receipt({
         userId: req.user._id,
@@ -79,17 +79,17 @@ const uploadReceipt = asyncHandler(async (req, res) => {
 
       // Determine priority based on subscription
       const isPriority = req.user.subscriptionStatus === 'premium';
-      
+      console.log('isPriority============>', isPriority);
       // Add to processing queue with cloud storage URL
       const jobResult = isPriority
         ? await addPriorityJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString())
         : await addImageProcessingJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString());
-
+      console.log('jobResult============>', jobResult);
       // Update receipt with job info
       receipt.jobId = jobResult.jobId;
       receipt.queuePosition = jobResult.queuePosition;
       await receipt.save();
-
+      console.log('receipt============>', receipt);
       logger.logUserAction(req.user._id, 'receipt_uploaded', {
         receiptId: receipt._id,
         fileName: req.file.originalname,
@@ -98,7 +98,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
         priority: isPriority ? 'high' : 'normal',
         cloudStorageId: cloudUploadResult.publicId
       });
-
+      console.log('res============>');
       res.status(201).json({
         status: 'success',
         message: 'Receipt uploaded successfully and queued for processing',
