@@ -218,8 +218,8 @@ const checkUploadLimit = async (req, res, next) => {
     
     if (!user.canUpload()) {
       const limits = {
-        free: 10,
-        basic: 100,
+        free: 100,
+        basic: 500,
         premium: 1000
       };
 

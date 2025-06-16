@@ -148,7 +148,8 @@ const uploadReceipt = asyncHandler(async (req, res) => {
 // Optimize uploaded image
 const optimizeImage = async (imagePath) => {
   try {
-    const optimizedFilename = path.basename(imagePath).replace(/\.(jpg|jpeg|png)$/i, '.jpg');
+    const originalFilename = path.basename(imagePath);
+    const optimizedFilename = originalFilename.replace(/\.(jpg|jpeg|png)$/i, '_bill.jpg');
     const optimizedPath = path.join(path.dirname(imagePath), optimizedFilename);
     
     await sharp(imagePath)
