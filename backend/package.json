@@ -9,6 +9,7 @@
     "worker": "node worker.js",
     "worker:dev": "nodemon --exec node worker.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run worker:dev\"",
+    "start:all": "concurrently \"npm run start\" \"npm run worker\"",
     "test": "jest"
   },
   "dependencies": {
