@@ -2,6 +2,8 @@ const fs = require('fs').promises;
 const path = require('path');
 const logger = require('../utils/logger');
 const { GoogleGenAI } = require('@google/genai');
+const cloudStorage = require('./cloudStorage');
+const axios = require('axios');
 
 const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
@@ -16,12 +18,14 @@ class OCRService {
     logger.info('OCR Service initialized with Google Gemini AI');
   }
 
-  async analyzeImage(imagePath) {
+  async analyzeImage(imageUrl) {
     const startTime = Date.now();
     try {
-      logger.info(`Starting Gemini analysis for image: ${path.basename(imagePath)}`);
+      logger.info(`Starting Gemini analysis for image URL: ${imageUrl}`);
 
-      const imageBuffer = await fs.readFile(imagePath);
+      // Download image from cloud storage
+      const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const imageBuffer = Buffer.from(response.data);
       const imageBase64 = imageBuffer.toString('base64');
 
       const prompt = `
@@ -53,13 +57,11 @@ class OCRService {
           {
             inlineData: {
               data: imageBase64,
-              mimeType: 'image/jpeg', // Assuming jpeg, adjust if other types are common
+              mimeType: 'image/jpeg',
             },
           },
         ]
       });
-      // The response from the Gemini API for vision models has a different structure.
-      // We will parse the text directly from the candidates array.
       const text = result.candidates[0].content.parts[0].text;
       const processingTime = Date.now() - startTime;
       logger.info(`Gemini analysis completed in ${processingTime}ms.`);
@@ -77,14 +79,6 @@ class OCRService {
     } catch (error) {
       logger.error('Gemini analysis failed:', { message: error.message, stack: error.stack });
       throw new Error(`Gemini analysis failed: ${error.message}`);
-    } finally {
-      // Delete the image file after analysis, regardless of success or failure
-      try {
-        await fs.unlink(imagePath);
-        logger.info(`Deleted image after analysis: ${path.basename(imagePath)}`);
-      } catch (deleteError) {
-        logger.warn(`Failed to delete image after analysis: ${path.basename(imagePath)}`, deleteError);
-      }
     }
   }
 

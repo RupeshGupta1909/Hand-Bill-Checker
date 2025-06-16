@@ -11,6 +11,10 @@ const receiptSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  cloudStorageId: {
+    type: String,
+    required: true
+  },
   processedImagePath: String,
   status: {
     type: String,

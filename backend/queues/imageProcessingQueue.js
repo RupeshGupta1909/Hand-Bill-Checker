@@ -41,14 +41,17 @@ const addImageProcessingJob = async (receiptId, imagePath, userId, priority = 'n
       throw new Error('Queue is full. Please try again later.');
     }
     console.log("imageProcessingQueue======creating job================");
+    const jobData = {
+      receiptId,
+      imagePath,
+      userId,
+      timestamp: new Date().toISOString()
+    };
+    console.log('Creating job with data:', jobData);
+    
     const job = await imageProcessingQueue.add(
       'process-receipt-image',
-      {
-        receiptId,
-        imagePath,
-        userId,
-        timestamp: new Date().toISOString()
-      },
+      jobData,
       {
         priority: QUEUE_CONFIG.priorities[priority] || QUEUE_CONFIG.priorities.normal,
         attempts: 3,
@@ -62,7 +65,8 @@ const addImageProcessingJob = async (receiptId, imagePath, userId, priority = 'n
       receiptId,
       userId,
       priority,
-      queuePosition: waiting.length + 1
+      queuePosition: waiting.length + 1,
+      imagePath // Add imagePath to the logs
     });
 
     return {

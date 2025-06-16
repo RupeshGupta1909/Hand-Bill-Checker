@@ -252,7 +252,7 @@ export default {
       const lang = languageStore.language === 'hi' ? 'hi-IN' : 'en-US'
       return new Date(dateString).toLocaleDateString(lang, options)
     }
-
+    
     onMounted(async () => {
       try {
         loading.value = true;
