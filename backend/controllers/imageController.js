@@ -1,40 +1,15 @@
 const Receipt = require('../models/Receipt');
 const { asyncHandler, AppError } = require('../middleware/errorHandler');
 const { addImageProcessingJob, addPriorityJob, getJobStatus, getUserJobs } = require('../queues/imageProcessingQueue');
+const cloudStorage = require('../services/cloudStorage');
 const logger = require('../utils/logger');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const sharp = require('sharp');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error);
-    }
-  },
-  filename: (req, file, cb) => {
-    // Create date-time format: HH-MM-SS_DDMonthYYYY.jpg (using dash and underscore for file system compatibility)
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    const day = now.getDate();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
-                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const month = monthNames[now.getMonth()];
-    const year = now.getFullYear();
-    
-    const extension = path.extname(file.originalname);
-    const dateTimeFilename = `${hours}-${minutes}-${seconds}_${day}${month}${year}${extension}`;
-    cb(null, dateTimeFilename);
-  }
-});
+// Configure multer to use memory storage
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   // Check file type
@@ -56,7 +31,6 @@ const upload = multer({
 
 // Upload receipt image
 const uploadReceipt = asyncHandler(async (req, res) => {
-  // Handle file upload
   upload.single('receipt')(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {
@@ -75,18 +49,29 @@ const uploadReceipt = asyncHandler(async (req, res) => {
     }
 
     try {
-      // Validate and optimize image
-      const optimizedFilename = await optimizeImage(req.file.path);
-      console.log("optimizedFilename==============", optimizedFilename);
-      const relativePathForDb = path.join('uploads', optimizedFilename).replace(/\\/g, '/');
-      console.log("relativePathForDb==============", relativePathForDb);
-      const absolutePathForWorker = path.join(__dirname, '..', 'uploads', optimizedFilename);
-      console.log("absolutePathForWorker==============", absolutePathForWorker);
+      // Optimize image in memory
+      const optimizedBuffer = await sharp(req.file.buffer)
+        .resize(1920, 1920, { 
+          fit: 'inside',
+          withoutEnlargement: true 
+        })
+        .jpeg({ 
+          quality: 85,
+          progressive: true 
+        })
+        .toBuffer();
+
+      // Upload optimized buffer to cloud storage
+      const now = new Date();
+      const fileName = `${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}_${now.getDate()}${now.toLocaleString('default', { month: 'short' })}${now.getFullYear()}.jpg`;
+      
+      const cloudUploadResult = await cloudStorage.uploadBuffer(optimizedBuffer, fileName);
 
       // Create receipt record
       const receipt = new Receipt({
         userId: req.user._id,
-        originalImagePath: relativePathForDb,
+        originalImagePath: cloudUploadResult.url,
+        cloudStorageId: cloudUploadResult.publicId,
         status: 'pending',
         processingStage: 'uploaded'
       });
@@ -95,10 +80,10 @@ const uploadReceipt = asyncHandler(async (req, res) => {
       // Determine priority based on subscription
       const isPriority = req.user.subscriptionStatus === 'premium';
       
-      // Add to processing queue
-      const jobResult = true
-        ? await addPriorityJob(receipt._id.toString(), absolutePathForWorker, req.user._id.toString())
-        : await addImageProcessingJob(receipt._id.toString(), absolutePathForWorker, req.user._id.toString());
+      // Add to processing queue with cloud storage URL
+      const jobResult = isPriority
+        ? await addPriorityJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString())
+        : await addImageProcessingJob(receipt._id.toString(), cloudUploadResult.url, req.user._id.toString());
 
       // Update receipt with job info
       receipt.jobId = jobResult.jobId;
@@ -110,7 +95,8 @@ const uploadReceipt = asyncHandler(async (req, res) => {
         fileName: req.file.originalname,
         fileSize: req.file.size,
         jobId: jobResult.jobId,
-        priority: isPriority ? 'high' : 'normal'
+        priority: isPriority ? 'high' : 'normal',
+        cloudStorageId: cloudUploadResult.publicId
       });
 
       res.status(201).json({
@@ -121,6 +107,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
             id: receipt._id,
             status: receipt.status,
             processingStage: receipt.processingStage,
+            imageUrl: cloudUploadResult.url,
             createdAt: receipt.createdAt
           },
           processing: {
@@ -132,14 +119,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
         }
       });
     } catch (error) {
-      // Clean up uploaded file if processing fails
-      if (req.file && req.file.path) {
-        try {
-          await fs.unlink(req.file.path);
-        } catch (cleanupError) {
-          logger.error('Failed to cleanup uploaded file:', cleanupError);
-        }
-      }
+      logger.error('Failed to process upload:', error);
       throw error;
     }
   });
@@ -147,11 +127,9 @@ const uploadReceipt = asyncHandler(async (req, res) => {
 
 // Optimize uploaded image
 const optimizeImage = async (imagePath) => {
+  const optimizedPath = imagePath + '_optimized.jpg';
+  
   try {
-    const originalFilename = path.basename(imagePath);
-    const optimizedFilename = originalFilename.replace(/\.(jpg|jpeg|png)$/i, '_bill.jpg');
-    const optimizedPath = path.join(path.dirname(imagePath), optimizedFilename);
-    
     await sharp(imagePath)
       .resize(1920, 1920, { 
         fit: 'inside',
@@ -162,19 +140,11 @@ const optimizeImage = async (imagePath) => {
         progressive: true 
       })
       .toFile(optimizedPath);
-
-    try {
-      // Try to remove original file, but don't fail if we can't
-      await fs.unlink(imagePath);
-    } catch (unlinkError) {
-      logger.warn('Could not remove original file, continuing anyway:', unlinkError);
-    }
     
-    return optimizedFilename;
+    return optimizedPath;
   } catch (error) {
     logger.error('Image optimization failed:', error);
-    // Don't throw here, just return the original filename
-    return path.basename(imagePath);
+    return imagePath; // Return original path if optimization fails
   }
 };
 

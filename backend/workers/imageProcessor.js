@@ -3,8 +3,10 @@ const ocrService = require('../services/ocrService');
 const Receipt = require('../models/Receipt');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
+const os = require('os');
 
 class ImageProcessor {
   constructor() {
@@ -32,6 +34,7 @@ class ImageProcessor {
     const { receiptId, imagePath, userId } = job.data;
     const startTime = Date.now();
     logger.info(`Starting image processing for receipt ${receiptId}`);
+    console.log('Processing job with data:', job.data);
     
     try {
       this.activeJobs.clear();
@@ -55,18 +58,11 @@ class ImageProcessor {
 
       await job.progress(10);
 
-      const fullImagePath = path.resolve(imagePath);
-      try {
-        await fs.access(fullImagePath);
-      } catch (error) {
-        throw new Error(`Image file not found: ${imagePath}`);
-      }
-
       this.activeJobs.get(job.id).currentStage = 'gemini_analysis';
       await job.progress(20);
 
       logger.info(`Starting Gemini analysis for receipt ${receiptId}`);
-      const analysisResult = await ocrService.analyzeImage(fullImagePath);
+      const analysisResult = await ocrService.analyzeImage(imagePath);
       
       await job.progress(80);
 
@@ -107,14 +103,6 @@ class ImageProcessor {
       this.activeJobs.delete(job.id);
 
       logger.info(`Successfully processed receipt ${receiptId} in ${totalProcessingTime}ms.`);
-      
-      // Clean up the temporary image file on success
-      try {
-        await fs.unlink(fullImagePath);
-        logger.info(`Cleaned up temporary file: ${fullImagePath}`);
-      } catch (cleanupError) {
-        logger.warn(`Failed to clean up temporary file ${fullImagePath}:`, cleanupError);
-      }
 
     } catch (error) {
       logger.error(`Failed to process receipt ${receiptId}:`, { message: error.message, stack: error.stack, jobData: job.data });
