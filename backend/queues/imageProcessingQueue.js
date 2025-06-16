@@ -201,7 +201,6 @@ const resumeQueue = async () => {
 
 // Priority job for premium users
 const addPriorityJob = async (receiptId, imagePath, userId) => {
-  console.log("addPriorityJob==============", receiptId, imagePath, userId);
   return addImageProcessingJob(receiptId, imagePath, userId, 'high');
 };
 

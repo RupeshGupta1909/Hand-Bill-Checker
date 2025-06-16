@@ -174,7 +174,6 @@ try {
 
   // Start server
   const PORT = process.env.PORT || 8080;
-  console.log('PORT===========', PORT);
   const startServer = async () => {
     logger.info('Starting server...');
     try {

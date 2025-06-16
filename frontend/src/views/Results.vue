@@ -252,11 +252,6 @@ export default {
       const lang = languageStore.language === 'hi' ? 'hi-IN' : 'en-US'
       return new Date(dateString).toLocaleDateString(lang, options)
     }
-    
-    const getImageUrl = (imagePath) => {
-      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      return `${backendUrl}/${imagePath}`;
-    }
 
     onMounted(async () => {
       try {
@@ -284,7 +279,6 @@ export default {
       getStatusIconClass,
       getStatusText,
       formatDate,
-      getImageUrl,
       downloadPDF,
       authStore
     }

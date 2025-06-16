@@ -17,24 +17,6 @@ const logger = require('../utils/logger');
 
 const router = express.Router();
 
-// Log that routes are loaded
-logger.info('authRoutes.js loaded================================================');
-
-// Add logging middleware for auth routes
-// router.use((req, res, next) => {
-//   logger.info('Auth route accessed:', {
-//     method: req.method,
-//     path: req.path,
-//     body: req.method === 'POST' ? { ...req.body, password: '***' } : undefined,
-//     headers: req.headers,
-//     query: req.query,
-//     params: req.params,
-//     url: req.url,
-//     originalUrl: req.originalUrl
-//   });
-//   next();
-// });
-
 // Validation rules
 const registerValidation = [
   body('name')

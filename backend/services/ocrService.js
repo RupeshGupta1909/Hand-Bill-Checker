@@ -46,7 +46,6 @@ class OCRService {
           "mismatch": false
         }
       `;
-
       const result = await genAI.models.generateContent({
         model: "gemini-1.5-flash",
         contents: [
@@ -59,16 +58,12 @@ class OCRService {
           },
         ]
       });
-      console.log("result==========gemini====", result);
       // The response from the Gemini API for vision models has a different structure.
       // We will parse the text directly from the candidates array.
       const text = result.candidates[0].content.parts[0].text;
-      console.log("text==========gemini====", text);
       const processingTime = Date.now() - startTime;
       logger.info(`Gemini analysis completed in ${processingTime}ms.`);
 
-      // The model should return a JSON string. We need to parse it.
-      // The response text might contain markdown characters like ```json ... ```
       const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
       
       const extractedData = JSON.parse(jsonString);
@@ -82,6 +77,14 @@ class OCRService {
     } catch (error) {
       logger.error('Gemini analysis failed:', { message: error.message, stack: error.stack });
       throw new Error(`Gemini analysis failed: ${error.message}`);
+    } finally {
+      // Delete the image file after analysis, regardless of success or failure
+      try {
+        await fs.unlink(imagePath);
+        logger.info(`Deleted image after analysis: ${path.basename(imagePath)}`);
+      } catch (deleteError) {
+        logger.warn(`Failed to delete image after analysis: ${path.basename(imagePath)}`, deleteError);
+      }
     }
   }
 

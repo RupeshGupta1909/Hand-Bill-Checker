@@ -32,14 +32,24 @@
 
         <!-- Selected File Preview -->
         <div v-else>
-          <div class="relative inline-block mx-auto w-full max-w-xs">
-            <img v-if="filePreview" :src="filePreview" alt="Preview" class="w-full h-auto object-contain max-h-48 rounded-lg shadow-md"/>
-            <button @click.stop="removeFile" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600">
-               X
-            </button>
+          <div class="relative mx-auto w-full max-w-sm">
+            <div class="preview-container">
+              <img 
+                v-if="filePreview" 
+                :src="filePreview" 
+                alt="Preview" 
+                class="preview-image"
+              />
+              <button 
+                @click.stop="removeFile" 
+                class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600"
+              >
+                X
+              </button>
+            </div>
           </div>
-          <div class="text-center">
-            <p class="mt-2 text-sm text-gray-900">{{ selectedFile.name }}</p>
+          <div class="text-center mt-2">
+            <p class="text-sm text-gray-900">{{ selectedFile.name }}</p>
             <p class="text-xs text-gray-500">{{ formatFileSize(selectedFile.size) }}</p>
           </div>
         </div>
@@ -187,10 +197,48 @@ export default {
       selectedFile.value = file
       uploadResult.value = null // Reset status on new file selection
       
-      // Create preview
+      // Create optimized preview
       const reader = new FileReader()
       reader.onload = (e) => {
-        filePreview.value = e.target.result
+        const img = new Image()
+        img.onload = () => {
+          // Create a canvas to resize the image
+          const canvas = document.createElement('canvas')
+          let width = img.width
+          let height = img.height
+          
+          // Target dimensions for thumbnail
+          const targetWidth = 200
+          const targetHeight = 150
+          
+          // Calculate dimensions to cover the target area while maintaining aspect ratio
+          const imgRatio = width / height
+          const targetRatio = targetWidth / targetHeight
+          
+          if (imgRatio > targetRatio) {
+            // Image is wider than target ratio
+            height = targetHeight
+            width = height * imgRatio
+          } else {
+            // Image is taller than target ratio
+            width = targetWidth
+            height = width / imgRatio
+          }
+          
+          canvas.width = targetWidth
+          canvas.height = targetHeight
+          
+          // Draw and center-crop the image
+          const ctx = canvas.getContext('2d')
+          // Calculate positioning to center the image
+          const x = (targetWidth - width) / 2
+          const y = (targetHeight - height) / 2
+          ctx.drawImage(img, x, y, width, height)
+          
+          // Convert to optimized data URL
+          filePreview.value = canvas.toDataURL('image/jpeg', 0.9)
+        }
+        img.src = e.target.result
       }
       reader.readAsDataURL(file)
     }
@@ -228,7 +276,6 @@ export default {
 
         try {
           const response = await receiptService.getReceiptStatus(jobId);
-          console.log("response=====getReceiptStatus=====gemini====", response);
           const data = response.data.data;
           const status = data.jobStatus.status;
           processingStatus.value = status;
@@ -347,6 +394,26 @@ export default {
     border-right-color: transparent;
     border-radius: 50%;
     animation: spin 1s linear infinite;
+}
+
+/* Image preview container styles */
+.preview-container {
+  position: relative;
+  width: 200px;  /* Fixed width */
+  height: 150px; /* Fixed height */
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: #f8f9fa;
+}
+
+/* Image preview styles */
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* This will crop and center the image */
+  border-radius: 8px;
 }
 
 @keyframes spin {
