@@ -123,7 +123,10 @@ const login = asyncHandler(async (req, res) => {
         ip: req.ip,
         userAgent: req.get('User-Agent')
       });
-      throw new AppError('Invalid email or password', 401);
+      return res.status(401).json({
+        status: 'error',
+        message: 'Invalid email or password'
+      });
     }
 
     // Check if user is active
@@ -187,7 +190,6 @@ const login = asyncHandler(async (req, res) => {
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
-    next(error);
   }
 });
 

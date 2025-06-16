@@ -27,22 +27,33 @@ try {
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginOpenerPolicy: { policy: "unsafe-none" },
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        connectSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
-        frameSrc: ["'self'", "https://hand-bill-checker.netlify.app"],
-        imgSrc: ["'self'", "data:", "https:"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-      },
-    },
+    contentSecurityPolicy: false // Disable CSP temporarily for debugging
   }));
+
+  // Debug logging for CORS
+  app.use((req, res, next) => {
+    console.log('Request Headers:', req.headers);
+    console.log('Request Method:', req.method);
+    console.log('Request URL:', req.url);
+    next();
+  });
+
+  // Enable CORS
+  app.use(cors({
+    origin: ['http://localhost:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    credentials: true,
+    maxAge: 86400
+  }));
+
+  // Preflight response
+  app.options('*', cors());
 
   // Rate limiting
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 1000, // limit each IP to 100 requests per windowMs
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -59,32 +70,6 @@ try {
 
   // Middleware
   app.use(compression());
-
-  // Debug logging for CORS
-  app.use((req, res, next) => {
-    logger.info('Incoming request:', {
-      method: req.method,
-      path: req.path,
-      origin: req.headers.origin,
-      headers: req.headers
-    });
-    next();
-  });
-
-  // Enable CORS for all routes
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', 'https://hand-bill-checker.netlify.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    // Handle preflight
-    if (req.method === 'OPTIONS') {
-      logger.info('Handling OPTIONS preflight request');
-      return res.status(200).end();
-    }
-    next();
-  });
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -140,7 +125,7 @@ try {
 
   // Start server
   const PORT = process.env.PORT || 8080;
-
+  console.log('PORT===========', PORT);
   const startServer = async () => {
     logger.info('Starting server...');
     try {
