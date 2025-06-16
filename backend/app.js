@@ -27,28 +27,77 @@ try {
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginOpenerPolicy: { policy: "unsafe-none" },
-    contentSecurityPolicy: false // Disable CSP temporarily for debugging
+    contentSecurityPolicy: false
   }));
 
   // Debug logging for CORS
   app.use((req, res, next) => {
-    console.log('Request Headers:', req.headers);
-    console.log('Request Method:', req.method);
-    console.log('Request URL:', req.url);
+    console.log('Incoming Request:', {
+      method: req.method,
+      url: req.url,
+      origin: req.headers.origin,
+      host: req.headers.host
+    });
     next();
   });
 
   // Enable CORS
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://hand-bill-checker.netlify.app',
+    process.env.CORS_ORIGIN
+  ].filter(Boolean); // Remove any undefined values
+
+  console.log('Allowed Origins:', allowedOrigins);
+
+  // CORS configuration
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
+    
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+      res.status(200).end();
+      return;
+    }
+    
+    next();
+  });
+
   app.use(cors({
-    origin: ['http://localhost:5173'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    origin: function(origin, callback) {
+      console.log('Request Origin:', origin);
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) {
+        console.log('No origin provided - allowing request');
+        return callback(null, true);
+      }
+      
+      if (allowedOrigins.includes(origin)) {
+        console.log('Origin allowed:', origin);
+        callback(null, true);
+      } else {
+        console.log('Origin not allowed:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     maxAge: 86400
   }));
 
-  // Preflight response
-  app.options('*', cors());
+  // Handle preflight requests for all routes
+  app.options('*', (req, res) => {
+    console.log('Handling OPTIONS request');
+    res.status(200).end();
+  });
 
   // Rate limiting
   const limiter = rateLimit({
