@@ -2,6 +2,8 @@ import axios from 'axios'
 
 const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api`
 
+console.log('API URL:', API_URL);
+
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
@@ -9,24 +11,35 @@ const api = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  withCredentials: true
+  withCredentials: true,
+  timeout: 10000 // 10 second timeout
 })
 
 // Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+api.interceptors.request.use(
+  (config) => {
+    console.log('Making request to:', config.url);
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
   }
-  return config
-}, error => {
-  console.error('Request error:', error);
-  return Promise.reject(error);
-})
+)
 
 // Handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('Response received:', {
+      status: response.status,
+      url: response.config.url
+    });
+    return response;
+  },
   (error) => {
     console.error('API Error:', {
       message: error.message,
@@ -35,7 +48,8 @@ api.interceptors.response.use(
       config: {
         url: error.config?.url,
         method: error.config?.method,
-        headers: error.config?.headers
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL
       }
     });
     
