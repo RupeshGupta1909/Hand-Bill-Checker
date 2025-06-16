@@ -39,15 +39,30 @@ try {
   });
 
   // Enable CORS
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'https://hand-bill-checker.netlify.app'
+  ];
+
   app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('Origin not allowed:', origin);
+        callback(null, false);
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
     credentials: true,
     maxAge: 86400
   }));
 
-  // Preflight response
+  // Handle preflight requests
   app.options('*', cors());
 
   // Rate limiting
