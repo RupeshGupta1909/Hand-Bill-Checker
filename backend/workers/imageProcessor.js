@@ -19,7 +19,7 @@ class ImageProcessor {
     }
     try {
       await ocrService.initialize();
-      imageProcessingQueue.process('process-receipt-image', 2, this.processReceiptImage.bind(this));
+      imageProcessingQueue.process('process-receipt-image', 1, this.processReceiptImage.bind(this));
       this.isRunning = true;
       logger.info('Image processor started successfully');
     } catch (error) {
@@ -34,7 +34,13 @@ class ImageProcessor {
     logger.info(`Starting image processing for receipt ${receiptId}`);
     
     try {
+      this.activeJobs.clear();
       this.activeJobs.set(job.id, { receiptId, userId, startTime, currentStage: 'initializing' });
+      
+      if (global.gc) {
+        global.gc();
+      }
+
       await job.progress(5);
 
       const receipt = await Receipt.findById(receiptId);

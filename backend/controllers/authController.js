@@ -14,13 +14,10 @@ const register = asyncHandler(async (req, res) => {
   if (!errors.isEmpty()) {
     throw validationError(errors);
   }
-  console.log("register controller loaded====================register============================");
-  console.log("req.body==============", req.body);
   const { name, email, password, shopName, address, phone } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email: email.toLowerCase() });
-  console.log("existingUser==============", existingUser);
   if (existingUser) {
     throw new AppError('User with this email already exists', 400);
   }
@@ -107,12 +104,7 @@ const login = asyncHandler(async (req, res) => {
         message: 'Please provide email and password'
       });
     }
-
-    // Find user and include password for comparison
-    console.log("email==============", email);
-    console.log("password==============", password);
     const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
-    console.log("user==============", user);
     if (!user || !await user.comparePassword(password)) {
       logger.info('Login failed: Invalid credentials', {
         email: req.body.email,
@@ -275,8 +267,6 @@ const logout = asyncHandler(async (req, res) => {
 
 // Get current user profile
 const getMe = asyncHandler(async (req, res) => {
-  console.log("getMe controller loaded====================getMe============================");
-  console.log("req.user==============", req.user);
   const user = await User.findById(req.user._id).populate({
     path: 'usageStats',
     select: 'totalUploads monthlyUploads'

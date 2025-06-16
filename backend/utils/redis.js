@@ -1,28 +1,20 @@
-const redis = require('redis');
+const Redis = require('redis');
 const logger = require('./logger');
 
 let redisClient;
 
 const connectRedis = async () => {
   try {
-    redisClient = redis.createClient({
-      url: process.env.REDIS_URL || 'redis://localhost:6379',
-      password: process.env.REDIS_PASSWORD || undefined,
-      retry_strategy: (options) => {
-        if (options.error && options.error.code === 'ECONNREFUSED') {
-          logger.error('Redis connection refused');
-          return new Error('Redis server connection refused');
-        }
-        if (options.total_retry_time > 1000 * 60 * 60) {
-          logger.error('Redis retry time exhausted');
-          return new Error('Retry time exhausted');
-        }
-        if (options.attempt > 10) {
-          return undefined;
-        }
-        // Retry after
-        return Math.min(options.attempt * 100, 3000);
-      }
+    // Free tier optimized configuration
+    redisClient = Redis.createClient({
+      url: process.env.REDIS_URL,
+      socket: {
+        connectTimeout: 10000,
+        keepAlive: 5000,
+        reconnectStrategy: (retries) => Math.min(retries * 50, 2000)
+      },
+      commandsQueueMaxLength: 100, // Limit queue size
+      maxRetriesPerRequest: 3
     });
 
     redisClient.on('error', (err) => {
@@ -37,12 +29,21 @@ const connectRedis = async () => {
       logger.info('Redis Client Ready');
     });
 
-    redisClient.on('end', () => {
-      logger.info('Redis Client Connection Ended');
-    });
-
     await redisClient.connect();
     logger.info('Redis connected successfully');
+    
+    // Set up periodic cleanup of old keys
+    setInterval(async () => {
+      try {
+        const keys = await redisClient.keys('bull:*:completed');
+        for (const key of keys) {
+          // Keep only last 50 completed jobs
+          await redisClient.zremrangebyrank(key, 0, -51);
+        }
+      } catch (error) {
+        logger.warn('Redis cleanup error:', error);
+      }
+    }, 1800000); // Run every 30 minutes
     
     return redisClient;
   } catch (error) {
@@ -51,12 +52,7 @@ const connectRedis = async () => {
   }
 };
 
-const getRedisClient = () => {
-  if (!redisClient) {
-    throw new Error('Redis client not initialized. Call connectRedis() first.');
-  }
-  return redisClient;
-};
+const getRedisClient = () => redisClient;
 
 const disconnectRedis = async () => {
   if (redisClient) {

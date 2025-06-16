@@ -90,7 +90,6 @@ const uploadReceipt = asyncHandler(async (req, res) => {
         status: 'pending',
         processingStage: 'uploaded'
       });
-      console.log("receipt==============", receipt);
       await receipt.save();
 
       // Determine priority based on subscription
@@ -149,7 +148,7 @@ const uploadReceipt = asyncHandler(async (req, res) => {
 // Optimize uploaded image
 const optimizeImage = async (imagePath) => {
   try {
-    const optimizedFilename = path.basename(imagePath).replace(/\.(jpg|jpeg|png)$/i, '_.jpg');
+    const optimizedFilename = path.basename(imagePath).replace(/\.(jpg|jpeg|png)$/i, '.jpg');
     const optimizedPath = path.join(path.dirname(imagePath), optimizedFilename);
     
     await sharp(imagePath)
@@ -163,14 +162,18 @@ const optimizeImage = async (imagePath) => {
       })
       .toFile(optimizedPath);
 
-    // Remove original file
-    await fs.unlink(imagePath);
+    try {
+      // Try to remove original file, but don't fail if we can't
+      await fs.unlink(imagePath);
+    } catch (unlinkError) {
+      logger.warn('Could not remove original file, continuing anyway:', unlinkError);
+    }
     
     return optimizedFilename;
   } catch (error) {
     logger.error('Image optimization failed:', error);
-    // Return original path if optimization fails
-    throw new AppError('Image processing failed. Please try again.', 500);
+    // Don't throw here, just return the original filename
+    return path.basename(imagePath);
   }
 };
 
@@ -294,7 +297,6 @@ const getProcessingStatus = asyncHandler(async (req, res) => {
   // If job is completed or failed, fetch the full receipt details
   if (['completed', 'failed'].includes(jobStatus.status) && jobStatus.data.receiptId) {
     const receipt = await Receipt.findById(jobStatus.data.receiptId);
-    console.log("receipt========status======", receipt);
     if (receipt) {
       return res.json({
         status: 'success',
