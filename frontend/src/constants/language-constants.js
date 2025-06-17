@@ -308,6 +308,10 @@ export const LANGUAGE_CONSTANTS = {
     en: "Recent Bills",
     hi: "हाल के बिल"
   },
+  TIME: {
+    en: "Time",
+    hi: "समय"
+  },
   NO_BILLS_FOUND: {
     en: "No bills found",
     hi: "कोई बिल नहीं मिला"
