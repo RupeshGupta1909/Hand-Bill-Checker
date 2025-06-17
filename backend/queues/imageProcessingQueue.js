@@ -1,9 +1,17 @@
 const Bull = require('bull');
 const logger = require('../utils/logger');
-
-// Create queue for image processing
+const url = require('url');
+const redisUrl = process.env.REDIS_URL;
+const redisOptions = url.parse(redisUrl);
+const redisAuth = redisOptions.auth ? redisOptions.auth.split(":") : [];
+const redisPassword = redisAuth.length === 2 ? redisAuth[1] : undefined;
 const imageProcessingQueue = new Bull('image processing', {
-  redis: process.env.REDIS_URL, // Use direct URL for Upstash
+  redis: {
+    port: Number(redisOptions.port),
+    host: redisOptions.hostname,
+    password: redisPassword,
+    tls: {}, // Required for Upstash SSL
+  },
   defaultJobOptions: {
     removeOnComplete: 20,    // Keep last 50 completed jobs
     removeOnFail: 20,        // Keep last 20 failed jobs
@@ -60,6 +68,7 @@ const addImageProcessingJob = async (receiptId, imageUrl, userId) => {
 // Add priority job
 const addPriorityJob = async (receiptId, imageUrl, userId) => {
   try {
+    console.log('receiptId============>',receiptId ,'imageUrl============>',imageUrl ,'userId============>',userId  );
     const job = await imageProcessingQueue.add('process-receipt-image', {
       receiptId,
       imageUrl,
