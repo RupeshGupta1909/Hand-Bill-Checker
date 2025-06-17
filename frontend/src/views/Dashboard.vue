@@ -75,25 +75,19 @@
           <table class="min-w-full divide-y divide-gray-200 table-fixed recent-receipts-table">
             <thead class="bg-gray-50">
               <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-4/12">{{ t('FILE_NAME') }}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">{{ t('STATUS') }}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">{{ t('RESULT') }}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">{{ t('DATE') }}</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/12">{{ t('ACTIONS') }}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-6/12">{{ t('TIME') }}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/12">{{ t('RESULT') }}</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/12">{{ t('ACTIONS') }}</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr v-for="receipt in recentReceipts" :key="receipt.id">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ receipt.originalImagePath.split('/').pop() }}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusClass(receipt.status)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">{{ getStatusText(receipt.status) }}</span>
-                </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatFileDateTime(receipt.originalImagePath.split('/').pop()) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span v-if="receipt.status === 'completed'" :class="getResultClass(receipt.hasDiscrepancies)" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full">
                   {{ receipt.hasDiscrepancies ? t('ERRORS_FOUND') : t('NO_ERRORS') }}
                   </span>
                 </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(receipt.createdAt) }}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <router-link v-if="receipt.status === 'completed'" :to="`/results/${receipt.id}`" class="text-indigo-600 hover:text-indigo-900">{{ t('VIEW') }}</router-link>
                 </td>
@@ -167,6 +161,60 @@ export default {
       return new Date(dateString).toLocaleDateString('hi-IN')
     }
 
+    const formatFileDateTime = (fileName) => {
+      try {
+        // Remove file extension and split by underscore
+        const [timePart, datePart] = fileName.replace(/\.[^/.]+$/, "").split('_')
+        
+        if (!timePart || !datePart) return 'Invalid format'
+        
+        // Parse time: 17-47-32 -> 17:47:32 and add IST offset (+5:30)
+        const timeComponents = timePart.split('-')
+        if (timeComponents.length !== 3) return 'Invalid time format'
+        
+        let [hours, minutes, seconds] = timeComponents.map(Number)
+        
+        // Add IST offset: +5 hours and +30 minutes
+        minutes += 30
+        hours += 5
+        
+        // Handle minute overflow
+        if (minutes >= 60) {
+          hours += Math.floor(minutes / 60)
+          minutes = minutes % 60
+        }
+        
+        // Handle hour overflow
+        if (hours >= 24) {
+          hours = hours % 24
+        }
+        
+        // Format with leading zeros
+        const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        
+        // Parse date: 17Jun2025 -> 17 June 2025
+        const dateMatch = datePart.match(/(\d{1,2})([A-Za-z]{3})(\d{4})/)
+        if (!dateMatch) return 'Invalid date format'
+        
+        const [, day, monthStr, year] = dateMatch
+        
+        // Convert month abbreviation to full month name
+        const monthMap = {
+          'Jan': 'January', 'Feb': 'February', 'Mar': 'March', 'Apr': 'April',
+          'May': 'May', 'Jun': 'June', 'Jul': 'July', 'Aug': 'August',
+          'Sep': 'September', 'Oct': 'October', 'Nov': 'November', 'Dec': 'December'
+        }
+        
+        const monthName = monthMap[monthStr] || monthStr
+        const formattedDate = `${parseInt(day)} ${monthName} ${year}`
+        
+        return `${formattedTime} - ${formattedDate}`
+      } catch (error) {
+        console.error('Error formatting file date time:', error)
+        return 'Invalid format'
+      }
+    }
+
     onMounted(async () => {
       try {
         const response = await receiptService.getUserReceipts(10);
@@ -199,6 +247,7 @@ export default {
       getStatusText,
       getResultClass,
       formatDate,
+      formatFileDateTime,
       t
     }
   }
@@ -245,18 +294,14 @@ export default {
 
 .recent-receipts-table th:nth-child(1),
 .recent-receipts-table td:nth-child(1) {
-  width: 33.333333% !important; /* 4/12 */
+  width: 50% !important; /* 6/12 */
 }
 
 .recent-receipts-table th:nth-child(2),
 .recent-receipts-table td:nth-child(2),
 .recent-receipts-table th:nth-child(3),
-.recent-receipts-table td:nth-child(3),
-.recent-receipts-table th:nth-child(4),
-.recent-receipts-table td:nth-child(4),
-.recent-receipts-table th:nth-child(5),
-.recent-receipts-table td:nth-child(5) {
-  width: 16.666667% !important; /* 2/12 */
+.recent-receipts-table td:nth-child(3) {
+  width: 25% !important; /* 3/12 */
 }
 
 /* 2x2 Grid layout for stats cards */
