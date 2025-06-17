@@ -31,7 +31,7 @@ class ImageProcessor {
   }
 
   async processReceiptImage(job) {
-    const { receiptId, imagePath, userId } = job.data;
+    const { receiptId, imageUrl, userId } = job.data;
     const startTime = Date.now();
     logger.info(`Starting image processing for receipt ${receiptId}`);
     console.log('Processing job with data:', job.data);
@@ -62,7 +62,7 @@ class ImageProcessor {
       await job.progress(20);
 
       logger.info(`Starting Gemini analysis for receipt ${receiptId}`);
-      const analysisResult = await ocrService.analyzeImage(imagePath);
+      const analysisResult = await ocrService.analyzeImage(imageUrl);
       
       await job.progress(80);
 

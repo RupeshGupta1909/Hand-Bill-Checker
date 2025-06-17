@@ -266,16 +266,20 @@ const getProcessingStatus = asyncHandler(async (req, res) => {
   }
 
   // If job is completed or failed, fetch the full receipt details
-  if (['completed', 'failed'].includes(jobStatus.status) && jobStatus.data.receiptId) {
-    const receipt = await Receipt.findById(jobStatus.data.receiptId);
-    if (receipt) {
-      return res.json({
-        status: 'success',
-        data: {
-          jobStatus,
-          receipt
-        }
-      });
+  if (['completed', 'failed'].includes(jobStatus.status)) {
+    // Get receiptId from job data or from the job itself
+    const receiptId = jobStatus.data?.receiptId || jobStatus.result?.receiptId;
+    if (receiptId) {
+      const receipt = await Receipt.findById(receiptId);
+      if (receipt) {
+        return res.json({
+          status: 'success',
+          data: {
+            jobStatus,
+            receipt
+          }
+        });
+      }
     }
   }
 
