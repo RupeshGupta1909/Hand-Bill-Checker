@@ -13,11 +13,33 @@ const {
 } = require('../controllers/imageController');
 const { auth, checkUploadLimit, checkResourceOwnership } = require('../middleware/auth');
 const Receipt = require('../models/Receipt');
+const { imageProcessingQueue } = require('../queues/imageProcessingQueue');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(auth);
+
+// Admin route to clear queue
+router.post('/queue/clear', auth, async (req, res) => {
+  try {
+    await imageProcessingQueue.empty();
+    await imageProcessingQueue.clean(0, 'completed');
+    await imageProcessingQueue.clean(0, 'failed');
+    logger.info('Queue cleared successfully');
+    res.json({ 
+      status: 'success', 
+      message: 'Queue cleared successfully' 
+    });
+  } catch (error) {
+    logger.error('Failed to clear queue:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Failed to clear queue' 
+    });
+  }
+});
 
 // Validation rules
 const feedbackValidation = [
