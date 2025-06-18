@@ -68,12 +68,7 @@
       </div>
     </nav>
 
-    <!-- Mobile menu overlay -->
-    <div 
-      v-if="isMobileMenuOpen" 
-      class="mobile-overlay"
-      @click="closeMobileMenu"
-    ></div>
+
 
     <main>
       <router-view />
@@ -121,10 +116,13 @@ export default {
     }
     
     const toggleMobileMenu = () => {
+      console.log('toggleMobileMenu=======0=====>',isMobileMenuOpen.value)
       isMobileMenuOpen.value = !isMobileMenuOpen.value
+      console.log('toggleMobileMenu=======1=====>',isMobileMenuOpen.value)
     }
     
     const closeMobileMenu = () => {
+      console.log('closeMobileMenu=======2=====>',isMobileMenuOpen.value)
       isMobileMenuOpen.value = false
     }
     
@@ -160,7 +158,8 @@ export default {
   border: none;
   cursor: pointer;
   padding: 0;
-  z-index: 1001;
+  z-index: 100;
+  position: relative;
 }
 
 .hamburger-line {
@@ -212,9 +211,10 @@ export default {
   left: 0;
   background: white;
   border-top: 1px solid #e5e7eb;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  z-index: 1000;
-  padding: 1rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+  z-index: 50;
+  padding: 0.5rem 0;
+  min-width: 200px;
 }
 
 .mobile-nav.active {
@@ -226,19 +226,27 @@ export default {
   display: block;
   padding: 0.75rem 1rem;
   text-decoration: none;
-  color: #374151;
-  border-bottom: 1px solid #f3f4f6;
-  transition: background-color 0.2s;
+  color: #1f2937;
+  font-weight: 500;
+  border-bottom: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
   border: none;
   background: none;
   text-align: left;
   width: 100%;
   font-size: 1rem;
   cursor: pointer;
+  position: relative;
+  z-index: 60;
 }
 
 .mobile-nav-link:hover {
-  background-color: #f9fafb;
+  background-color: #f3f4f6;
+  color: #4f46e5;
+}
+
+.mobile-nav-link:active {
+  background-color: #e5e7eb;
 }
 
 .mobile-nav-link:last-child {
@@ -246,27 +254,13 @@ export default {
 }
 
 .mobile-nav-link.logout-btn {
-  color: #ef4444;
+  color: #dc2626;
+  font-weight: 600;
 }
 
-
-
-/* Mobile overlay */
-.mobile-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
-  display: block;
-}
-
-@media (min-width: 769px) {
-  .mobile-overlay {
-    display: none;
-  }
+.mobile-nav-link.logout-btn:hover {
+  color: #b91c1c;
+  background-color: #fef2f2;
 }
 
 /* Ensure navbar has relative positioning for dropdown */
